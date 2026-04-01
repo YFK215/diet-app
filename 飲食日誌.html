@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="飲食日誌">
+<meta name="theme-color" content="#0a140a">
+<title>飲食日誌</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a140a; color: #c8e6c8; font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif; min-height: 100vh; }
+button { cursor: pointer; font-family: inherit; }
+input { font-family: inherit; -webkit-appearance: none; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #2a3d2a; border-radius: 2px; }
+
+/* ONBOARDING */
+#onboarding { display: flex; flex-direction: column; min-height: 100vh; padding: calc(32px + env(safe-area-inset-top)) 28px calc(32px + env(safe-area-inset-bottom)); max-width: 480px; margin: 0 auto; }
+#onboarding.hidden { display: none; }
+.ob-logo { font-size: 36px; margin-bottom: 10px; }
+.ob-title { font-size: 24px; font-weight: 900; color: #A8E063; margin-bottom: 4px; }
+.ob-subtitle { font-size: 13px; color: #4a6a4a; margin-bottom: 32px; }
+.ob-dots { display: flex; gap: 6px; margin-bottom: 28px; }
+.ob-dot { height: 6px; border-radius: 3px; background: #1e2a1e; transition: all 0.35s; width: 8px; }
+.ob-dot.active { width: 28px; background: #A8E063; }
+.ob-dot.done { background: #3a5a3a; }
+.ob-step { display: none; flex-direction: column; flex: 1; }
+.ob-step.active { display: flex; }
+.ob-q { font-size: 20px; font-weight: 800; color: #c8e6c8; margin-bottom: 6px; line-height: 1.4; }
+.ob-hint { font-size: 12px; color: #4a6a4a; margin-bottom: 24px; }
+.ob-choices { display: flex; flex-direction: column; gap: 10px; }
+.ob-choice { padding: 18px 20px; border-radius: 14px; border: 1px solid #2a3d2a; background: #0f1f0f; color: #8aab8a; text-align: left; transition: all 0.18s; }
+.ob-choice .ch-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; color: #c8e6c8; }
+.ob-choice .ch-desc { font-size: 12px; color: #4a6a4a; }
+.ob-choice.selected { border-color: #A8E063; background: #1a3020; }
+.ob-choice.selected .ch-title { color: #A8E063; }
+.ob-gender { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ob-gender .ob-choice { display: flex; flex-direction: column; align-items: center; padding: 24px 16px; gap: 8px; text-align: center; }
+.ob-gender .ob-choice .icon { font-size: 38px; }
+.ob-fields { display: flex; flex-direction: column; gap: 14px; }
+.ob-field-label { font-size: 11px; color: #6b8f6b; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.ob-iw { display: flex; align-items: center; background: #111d11; border: 1px solid #2a3d2a; border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+.ob-iw:focus-within { border-color: #A8E063; }
+.ob-inp { flex: 1; background: transparent; border: none; padding: 16px 8px 16px 18px; color: #A8E063; font-size: 24px; font-family: 'Courier New', 'Menlo', monospace; font-weight: 700; outline: none; width: 0; }
+.ob-inp::placeholder { color: #2a3d2a; }
+.ob-unit { padding: 0 18px 0 4px; font-size: 13px; color: #4a6a4a; white-space: nowrap; }
+.ob-result { background: #111d11; border-radius: 16px; padding: 20px; border: 1px solid #2a3d2a; margin-bottom: 8px; overflow-y: auto; }
+.ob-result-title { font-size: 11px; color: #6b8f6b; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; }
+.ob-rrow { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #1a2a1a; }
+.ob-rrow:last-child { border-bottom: none; }
+.ob-rlabel { font-size: 13px; color: #8aab8a; }
+.ob-rval { font-size: 15px; font-weight: 700; font-family: 'Courier New', 'Menlo', monospace; }
+.ob-macros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #1a2a1a; }
+.ob-macro { background: #0a140a; border-radius: 10px; padding: 10px 8px; text-align: center; }
+.ob-macro-val { font-size: 18px; font-weight: 700; font-family: 'Courier New', 'Menlo', monospace; }
+.ob-macro-label { font-size: 10px; color: #4a6a4a; margin-top: 3px; }
+.ob-nav { margin-top: auto; padding-top: 24px; display: flex; gap: 10px; }
+.ob-back { flex: 0 0 52px; height: 52px; border-radius: 14px; border: 1px solid #2a3d2a; background: transparent; color: #6b8f6b; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+.ob-next { flex: 1; height: 52px; border-radius: 14px; border: none; background: #A8E063; color: #0a140a; font-size: 16px; font-weight: 800; letter-spacing: 0.5px; transition: opacity 0.2s; }
+.ob-next:disabled { opacity: 0.3; }
+
+/* APP */
+#app { display: none; max-width: 520px; margin: 0 auto; padding-bottom: 40px; }
+.header { padding: calc(18px + env(safe-area-inset-top)) 24px 0; display: flex; justify-content: space-between; align-items: flex-start; }
+.header-label { font-size: 11px; color: #4a6a4a; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+.header-date { font-size: 22px; font-weight: 900; color: #A8E063; }
+.header-badge { background: #1a2a1a; border-radius: 12px; padding: 7px 14px; font-size: 11px; color: #6b8f6b; border: 1px solid #2a3d2a; text-align: right; line-height: 1.7; }
+.tabs { display: flex; gap: 6px; padding: 16px 24px 0; overflow-x: auto; }
+.tabs::-webkit-scrollbar { height: 0; }
+.tab { padding: 8px 18px; border-radius: 20px; border: 1px solid #2a3d2a; background: transparent; color: #6b8f6b; font-size: 13px; white-space: nowrap; flex-shrink: 0; transition: all 0.2s; }
+.tab.active { background: #A8E063; color: #0a140a; border-color: #A8E063; font-weight: 700; }
+.content { padding: 20px 24px; }
+.card { background: #111d11; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #1a2a1a; }
+.ring-card { background: #111d11; border-radius: 20px; padding: 24px 20px; margin-bottom: 16px; border: 1px solid #1a2a1a; }
+.ring-row { display: flex; align-items: center; gap: 16px; }
+.ring-wrap { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+.ring-wrap svg { position: absolute; top: 0; left: 0; }
+.ring-info { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-cal { font-size: 28px; font-weight: 800; font-family: 'Courier New', 'Menlo', monospace; color: #A8E063; }
+.ring-cal.over { color: #FF6B6B; }
+.ring-unit { font-size: 11px; color: #6b8f6b; letter-spacing: 2px; margin-top: 2px; }
+.ring-remain { font-size: 11px; color: #6b8f6b; margin-top: 3px; }
+.ring-add-btn { width: 72px; height: 72px; border-radius: 50%; background: #A8E063; color: #0a140a; border: none; font-size: 32px; font-weight: 800; flex-shrink: 0; box-shadow: 0 4px 20px rgba(168,224,99,0.45); transition: transform 0.15s; }
+.ring-add-btn:active { transform: scale(0.92); }
+.nutrient { margin-bottom: 10px; }
+.nutrient-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.nutrient-label { font-size: 12px; color: #8aab8a; }
+.nutrient-val { font-size: 12px; color: #c8e6c8; font-family: 'Courier New', 'Menlo', monospace; }
+.bar-track { height: 7px; background: #1e2a1e; border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+.empty { text-align: center; color: #4a6a4a; padding: 28px 0; font-size: 14px; line-height: 2.4; }
+.empty a { color: #A8E063; cursor: pointer; }
+.meal-card { background: #111d11; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #1a2a1a; }
+.meal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.meal-title { color: #A8E063; font-weight: 700; font-size: 14px; }
+.meal-total { color: #6b8f6b; font-size: 12px; font-family: 'Courier New', 'Menlo', monospace; }
+.food-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #1a2a1a; }
+.food-row:last-child { border-bottom: none; }
+.food-name { color: #c8e6c8; font-size: 13px; }
+.food-macro { font-size: 10px; color: #4a6a4a; margin-top: 3px; }
+.food-cal { color: #A8E063; font-size: 13px; font-family: 'Courier New', 'Menlo', monospace; }
+.del-btn { background: none; border: none; color: #3a5a3a; font-size: 22px; padding: 0 0 0 12px; min-width: 36px; }
+.del-btn:active { color: #FF6B6B; }
+
+/* RECOMMEND TAB */
+.rec-mode-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.rec-mode-btn { padding: 18px 12px; border-radius: 14px; border: 1px solid #2a3d2a; background: #0f1f0f; color: #6b8f6b; text-align: center; transition: all 0.2s; }
+.rec-mode-btn .rm-icon { font-size: 28px; margin-bottom: 6px; }
+.rec-mode-btn .rm-title { font-size: 14px; font-weight: 700; color: #c8e6c8; margin-bottom: 3px; }
+.rec-mode-btn .rm-desc { font-size: 11px; color: #4a6a4a; }
+.rec-mode-btn.selected { border-color: #A8E063; background: #1a3020; }
+.rec-mode-btn.selected .rm-title { color: #A8E063; }
+.rec-summary { background: #0f1f0f; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; border: 1px solid #1a2a1a; }
+.rec-summary-title { font-size: 11px; color: #6b8f6b; letter-spacing: 2px; margin-bottom: 10px; }
+.rec-gap-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.rec-gap-label { font-size: 12px; color: #8aab8a; }
+.rec-gap-val { font-size: 13px; font-weight: 700; font-family: 'Courier New', 'Menlo', monospace; }
+.rec-btn { width: 100%; padding: 14px; background: #A8E063; color: #0a140a; border: none; border-radius: 12px; font-weight: 800; font-size: 15px; margin-bottom: 20px; transition: opacity 0.2s; }
+.rec-btn:disabled { opacity: 0.35; background: #2a3d2a; color: #4a6a4a; }
+.rec-result { }
+.rec-card { background: #111d11; border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #1a2a1a; }
+.rec-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.rec-card-title { color: #A8E063; font-weight: 700; font-size: 14px; }
+.rec-card-cal { color: #6b8f6b; font-size: 12px; font-family: 'Courier New', 'Menlo', monospace; }
+.rec-item { padding: 10px 0; border-bottom: 1px solid #1a2a1a; }
+.rec-item:last-child { border-bottom: none; }
+.rec-item-name { color: #c8e6c8; font-size: 13px; margin-bottom: 4px; }
+.rec-item-info { display: flex; gap: 10px; font-size: 10px; color: #4a6a4a; }
+.rec-reason { font-size: 11px; color: #6b8f6b; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1a2a1a; line-height: 1.6; }
+.rec-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-right: 4px; margin-bottom: 4px; }
+
+/* PLAN */
+.plan-card { background: #111d11; border-radius: 20px; padding: 22px 20px; margin-bottom: 16px; border: 1px solid #1a2a1a; }
+.section-label { color: #8aab8a; font-size: 11px; letter-spacing: 2px; margin-bottom: 14px; text-transform: uppercase; }
+.weight-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; }
+.weight-num { font-size: 42px; font-weight: 900; font-family: 'Courier New', 'Menlo', monospace; line-height: 1; }
+.weight-sub { font-size: 11px; color: #6b8f6b; margin-top: 5px; }
+.progress-track { height: 10px; background: #1e2a1e; border-radius: 5px; overflow: hidden; margin-bottom: 8px; }
+.progress-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #A8E063, #FFD93D); }
+.progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: #4a6a4a; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid #1a2a1a; }
+.stat-row:last-child { border-bottom: none; }
+.stat-name { color: #c8e6c8; font-size: 13px; }
+.stat-desc { font-size: 11px; color: #4a6a4a; margin-top: 3px; }
+.stat-val { font-weight: 700; font-size: 18px; font-family: 'Courier New', 'Menlo', monospace; }
+.reset-btn { width: 100%; padding: 12px; background: transparent; border: 1px solid #2a3d2a; border-radius: 12px; color: #4a6a4a; font-size: 13px; margin-top: 8px; }
+
+/* HISTORY */
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 110px; margin-bottom: 16px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar-num { font-size: 9px; font-family: 'Courier New', 'Menlo', monospace; }
+.bar-rect { width: 100%; border-radius: 4px; min-height: 4px; }
+.bar-date { font-size: 9px; color: #4a6a4a; }
+.goal-line { background: #111d11; border-radius: 12px; padding: 13px 16px; margin-bottom: 16px; border: 1px solid #1a2a1a; display: flex; justify-content: space-between; align-items: center; }
+.history-day { margin-bottom: 12px; background: #111d11; border-radius: 12px; padding: 16px; border: 1px solid #1e2a1e; }
+.history-day-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; z-index: 100; }
+.modal { background: #111d11; border-radius: 24px 24px 0 0; width: 100%; max-width: 520px; border: 1px solid #2a3d2a; border-bottom: none; max-height: 92vh; display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
+.modal-handle { width: 40px; height: 4px; background: #2a3d2a; border-radius: 2px; margin: 12px auto 4px; flex-shrink: 0; }
+.modal-header { padding: 8px 20px 0; flex-shrink: 0; }
+.modal-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.modal-title { color: #A8E063; font-size: 16px; font-weight: 700; }
+.close-btn { background: none; border: none; color: #6b8f6b; font-size: 28px; line-height: 1; padding: 4px 8px; }
+.modal-tabs { display: flex; background: #0f1f0f; border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+.modal-tab { flex: 1; padding: 9px; border-radius: 8px; border: none; background: transparent; color: #6b8f6b; font-size: 13px; font-family: inherit; }
+.modal-tab.active { background: #1e3a1e; color: #A8E063; font-weight: 700; }
+.manual-section { padding: 0 20px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.chatgpt-tip { background: #0f1f0f; border: 1px solid #2a3d2a; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+.copy-btn { margin-top: 10px; width: 100%; padding: 10px; background: transparent; border: 1px solid #2a3d2a; border-radius: 8px; color: #6b8f6b; font-size: 13px; }
+.copy-btn.copied { border-color: #A8E063; color: #A8E063; }
+.field-label { font-size: 11px; color: #6b8f6b; letter-spacing: 1px; margin-bottom: 6px; }
+.text-input { width: 100%; background: #1a2a1a; border: 1px solid #2a3d2a; border-radius: 10px; padding: 13px 14px; color: #c8e6c8; font-size: 16px; outline: none; }
+.num-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.num-input-wrap { display: flex; align-items: center; background: #1a2a1a; border: 1px solid #2a3d2a; border-radius: 10px; overflow: hidden; }
+.num-input { flex: 1; background: transparent; border: none; padding: 13px 6px 13px 14px; color: #c8e6c8; font-size: 16px; font-family: 'Courier New', 'Menlo', monospace; outline: none; width: 0; }
+.num-unit { padding: 0 12px 0 2px; font-size: 11px; color: #4a6a4a; }
+.search-input { width: 100%; background: #1a2a1a; border: 1px solid #2a3d2a; border-radius: 10px; padding: 13px 14px; color: #c8e6c8; font-size: 16px; outline: none; margin-bottom: 10px; }
+.cat-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px; }
+.cat-scroll::-webkit-scrollbar { height: 0; }
+.cat-btn { padding: 7px 16px; border-radius: 16px; border: 1px solid #2a3d2a; background: transparent; color: #6b8f6b; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+.cat-btn.active { background: #1e3a1e; border-color: #A8E063; color: #A8E063; }
+.food-list { flex: 1; overflow-y: auto; padding: 0 20px; -webkit-overflow-scrolling: touch; }
+.food-item { padding: 14px; border-radius: 10px; margin-bottom: 8px; background: #0f1f0f; border: 1px solid #1a2a1a; display: flex; justify-content: space-between; align-items: center; }
+.food-item.selected { background: #1e3a1e; border-color: #A8E063; }
+.food-item-cal { color: #6b8f6b; font-weight: 700; font-size: 14px; font-family: 'Courier New', 'Menlo', monospace; }
+.food-item.selected .food-item-cal { color: #A8E063; }
+.no-result { color: #4a6a4a; text-align: center; padding: 30px 0; font-size: 13px; }
+.modal-bottom { padding: 14px 20px 16px; border-top: 1px solid #1a2a1a; flex-shrink: 0; }
+.qty-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.qty-label { color: #8aab8a; font-size: 13px; }
+.qty-controls { display: flex; align-items: center; gap: 18px; }
+.qty-btn { width: 38px; height: 38px; border-radius: 50%; background: #1a2a1a; border: 1px solid #2a3d2a; color: #A8E063; font-size: 22px; display: flex; align-items: center; justify-content: center; }
+.qty-num { color: #c8e6c8; font-weight: 700; font-family: 'Courier New', 'Menlo', monospace; min-width: 30px; text-align: center; font-size: 16px; }
+.qty-cal { color: #A8E063; font-weight: 700; font-family: 'Courier New', 'Menlo', monospace; font-size: 16px; }
+.meal-btns { display: flex; gap: 6px; margin-bottom: 12px; }
+.meal-btn { flex: 1; padding: 9px 0; border-radius: 8px; border: 1px solid #2a3d2a; background: transparent; color: #6b8f6b; font-size: 12px; }
+.meal-btn.active { background: #1e3a1e; border-color: #A8E063; color: #A8E063; }
+.add-btn { width: 100%; padding: 15px; background: #A8E063; color: #0a140a; border: none; border-radius: 12px; font-weight: 800; font-size: 16px; }
+.add-btn:disabled { opacity: 0.35; }
+
+/* CALENDAR */
+.cal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 24px; }
+.cal-modal { background: #111d11; border-radius: 20px; padding: 20px; width: 100%; max-width: 340px; border: 1px solid #2a3d2a; }
+.cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.cal-month { font-size: 16px; font-weight: 700; color: #A8E063; }
+.cal-nav { background: none; border: 1px solid #2a3d2a; border-radius: 8px; color: #6b8f6b; width: 32px; height: 32px; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 8px; }
+.cal-weekday { text-align: center; font-size: 11px; color: #4a6a4a; padding: 4px 0; }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day { aspect-ratio: 1; border-radius: 8px; border: none; background: transparent; color: #8aab8a; font-size: 14px; display: flex; align-items: center; justify-content: center; position: relative; flex-direction: column; gap: 2px; }
+.cal-day:not(.empty):not(.future) { cursor: pointer; }
+.cal-day:not(.empty):not(.future):hover { background: #1a2a1a; }
+.cal-day.today { background: #1e3a1e; color: #A8E063; font-weight: 700; }
+.cal-day.selected { background: #A8E063; color: #0a140a; font-weight: 700; }
+.cal-day.has-data::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #A8E063; position: absolute; bottom: 3px; }
+.cal-day.selected.has-data::after { background: #0a140a; }
+.cal-day.empty { pointer-events: none; }
+.cal-day.future { color: #2a3d2a; pointer-events: none; }
+.cal-close { width: 100%; margin-top: 16px; padding: 12px; background: transparent; border: 1px solid #2a3d2a; border-radius: 10px; color: #6b8f6b; font-size: 14px; }
+.header-date { cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.header-date::after { content: '📅'; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="ob-logo">🥗</div>
+  <div class="ob-title">飲食日誌</div>
+  <div class="ob-subtitle">設定個人資料，計算專屬每日熱量目標</div>
+  <div class="ob-dots" id="obDots"></div>
+  <div class="ob-step active" id="step-0">
+    <div class="ob-q">您的性別？</div>
+    <div class="ob-hint">用於計算基礎代謝率</div>
+    <div class="ob-choices ob-gender">
+      <button class="ob-choice" onclick="selectChoice(0,'gender','male',this)"><span class="icon">👨</span><span class="ch-title">男性</span></button>
+      <button class="ob-choice" onclick="selectChoice(0,'gender','female',this)"><span class="icon">👩</span><span class="ch-title">女性</span></button>
+    </div>
+    <div class="ob-nav"><button class="ob-next" id="next-0" onclick="nextStep()" disabled>下一步 →</button></div>
+  </div>
+  <div class="ob-step" id="step-1">
+    <div class="ob-q">基本資料</div>
+    <div class="ob-hint">請輸入您的年齡、身高、體重</div>
+    <div class="ob-fields">
+      <div><div class="ob-field-label">年齡</div><div class="ob-iw"><input class="ob-inp" id="ob-age" type="number" min="10" max="100" placeholder="30" oninput="checkStep1()"><span class="ob-unit">歲</span></div></div>
+      <div><div class="ob-field-label">身高</div><div class="ob-iw"><input class="ob-inp" id="ob-height" type="number" min="100" max="250" placeholder="165" oninput="checkStep1()"><span class="ob-unit">cm</span></div></div>
+      <div><div class="ob-field-label">目前體重</div><div class="ob-iw"><input class="ob-inp" id="ob-weight" type="number" min="30" max="300" placeholder="65" oninput="checkStep1()"><span class="ob-unit">kg</span></div></div>
+    </div>
+    <div class="ob-nav"><button class="ob-back" onclick="prevStep()">←</button><button class="ob-next" id="next-1" onclick="nextStep()" disabled>下一步 →</button></div>
+  </div>
+  <div class="ob-step" id="step-2">
+    <div class="ob-q">您的目標體重？</div>
+    <div class="ob-hint">希望減到幾公斤？</div>
+    <div class="ob-fields">
+      <div><div class="ob-field-label">目標體重</div><div class="ob-iw"><input class="ob-inp" id="ob-goal" type="number" min="30" max="300" placeholder="55" oninput="checkStep2()"><span class="ob-unit">kg</span></div></div>
+    </div>
+    <div class="ob-nav"><button class="ob-back" onclick="prevStep()">←</button><button class="ob-next" id="next-2" onclick="nextStep()" disabled>下一步 →</button></div>
+  </div>
+  <div class="ob-step" id="step-3">
+    <div class="ob-q">每週目標減重速度？</div>
+    <div class="ob-hint">越慢越容易維持，建議標準</div>
+    <div class="ob-choices">
+      <button class="ob-choice" onclick="selectChoice(3,'speed',0.25,this)"><div class="ch-title">🐢 緩慢</div><div class="ch-desc">每週減 0.25kg・飲食限制較少</div></button>
+      <button class="ob-choice" onclick="selectChoice(3,'speed',0.5,this)"><div class="ch-title">⚡ 標準（建議）</div><div class="ch-desc">每週減 0.5kg・每日少攝取 500 大卡</div></button>
+      <button class="ob-choice" onclick="selectChoice(3,'speed',0.75,this)"><div class="ch-title">🔥 積極</div><div class="ch-desc">每週減 0.75kg・飲食控制較嚴格</div></button>
+    </div>
+    <div class="ob-nav"><button class="ob-back" onclick="prevStep()">←</button><button class="ob-next" id="next-3" onclick="nextStep()" disabled>下一步 →</button></div>
+  </div>
+  <div class="ob-step" id="step-4">
+    <div class="ob-q">日常活動量？</div>
+    <div class="ob-hint">選擇最接近您日常生活的描述</div>
+    <div class="ob-choices">
+      <button class="ob-choice" onclick="selectChoice(4,'activity',1.2,this)"><div class="ch-title">🪑 久坐</div><div class="ch-desc">辦公室工作、幾乎不運動</div></button>
+      <button class="ob-choice" onclick="selectChoice(4,'activity',1.375,this)"><div class="ch-title">🚶 輕度活動</div><div class="ch-desc">每週運動 1–3 次</div></button>
+      <button class="ob-choice" onclick="selectChoice(4,'activity',1.55,this)"><div class="ch-title">🏃 中度活動</div><div class="ch-desc">每週運動 3–5 次</div></button>
+      <button class="ob-choice" onclick="selectChoice(4,'activity',1.725,this)"><div class="ch-title">💪 高度活動</div><div class="ch-desc">每天運動或體力勞動</div></button>
+    </div>
+    <div class="ob-nav"><button class="ob-back" onclick="prevStep()">←</button><button class="ob-next" id="next-4" onclick="nextStep()" disabled>下一步 →</button></div>
+  </div>
+  <div class="ob-step" id="step-5">
+    <div class="ob-q">您的專屬計畫 🎯</div>
+    <div class="ob-hint">根據您的資料計算結果如下</div>
+    <div class="ob-result" id="ob-result-card"></div>
+    <div class="ob-nav"><button class="ob-back" onclick="prevStep()">←</button><button class="ob-next" onclick="startApp()">開始使用 ✓</button></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div><div class="header-label">飲食日誌</div><div class="header-date" id="headerDate" onclick="openCal()"></div></div>
+    <div class="header-badge" id="headerBadge"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('today',this)">今日</button>
+    <button class="tab" onclick="switchTab('rec',this)">💡 建議</button>
+    <button class="tab" onclick="switchTab('plan',this)">計畫</button>
+    <button class="tab" onclick="switchTab('history',this)">歷史</button>
+  </div>
+  <div class="content">
+    <div id="tab-today"></div>
+    <div id="tab-rec" style="display:none"></div>
+    <div id="tab-plan" style="display:none"></div>
+    <div id="tab-history" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title-row"><span class="modal-title">🍽️ 記錄飲食</span><button class="close-btn" onclick="closeModal()">×</button></div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="mtab-manual" onclick="switchModalTab('manual')">✏️ 手動輸入</button>
+        <button class="modal-tab" id="mtab-db" onclick="switchModalTab('db')">📋 食物資料庫</button>
+      </div>
+    </div>
+    <div class="manual-section" id="manual-section">
+      <div class="chatgpt-tip">
+        <div style="font-size:11px;color:#6b8f6b;letter-spacing:1px;margin-bottom:8px">💡 搭配 ChatGPT 查詢複合食物</div>
+        <div style="background:#0a140a;border-radius:8px;padding:10px 12px;font-size:12px;color:#A8E063;line-height:1.8">我吃了「___」，請估算營養成分，格式：<br>熱量：＿大卡 / 蛋白質：＿g / 碳水：＿g / 脂肪：＿g</div>
+        <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">📋 複製提示詞，去問 ChatGPT</button>
+      </div>
+      <div style="margin-bottom:14px"><div class="field-label">食物名稱</div><input class="text-input" id="manualName" placeholder="例：香菇起司蛋三明治" oninput="updateManualBtn()"></div>
+      <div class="num-grid">
+        <div><div class="field-label">熱量</div><div class="num-input-wrap"><input class="num-input" id="manualCal" type="number" min="0" placeholder="0" oninput="updateManualBtn()"><span class="num-unit">大卡</span></div></div>
+        <div><div class="field-label">蛋白質</div><div class="num-input-wrap"><input class="num-input" id="manualP" type="number" min="0" placeholder="0"><span class="num-unit">g</span></div></div>
+        <div><div class="field-label">碳水化合物</div><div class="num-input-wrap"><input class="num-input" id="manualC" type="number" min="0" placeholder="0"><span class="num-unit">g</span></div></div>
+        <div><div class="field-label">脂肪</div><div class="num-input-wrap"><input class="num-input" id="manualF" type="number" min="0" placeholder="0"><span class="num-unit">g</span></div></div>
+      </div>
+    </div>
+    <div id="db-section" style="display:none;flex-direction:column">
+      <div style="padding:0 20px;flex-shrink:0">
+        <input class="search-input" id="searchInput" placeholder="搜尋食物名稱..." oninput="renderFoodList()">
+        <div class="cat-scroll" id="catBtns"></div>
+      </div>
+      <div class="food-list" id="foodList"></div>
+    </div>
+    <div class="modal-bottom">
+      <div class="meal-btns" id="mealBtns"></div>
+      <div class="qty-row" id="qtyRow" style="display:none">
+        <span class="qty-label">份數</span>
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="changeQty(-0.5)">−</button>
+          <span class="qty-num" id="qtyNum">1</span>
+          <button class="qty-btn" onclick="changeQty(0.5)">＋</button>
+        </div>
+        <span class="qty-cal" id="qtyCal"></span>
+      </div>
+      <button class="add-btn" id="addBtn" onclick="addFood()" disabled>＋ 加入紀錄</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ FOOD DB (無牛肉) ══
+const FOOD_DB = [
+  {name:"白飯（一碗）",       cal:280,p:5, c:62,f:0, cat:"主食"},
+  {name:"糙米飯（一碗）",     cal:270,p:6, c:58,f:2, cat:"主食"},
+  {name:"饅頭（一個）",       cal:220,p:7, c:46,f:1, cat:"主食"},
+  {name:"土司（一片）",       cal:110,p:4, c:20,f:2, cat:"主食"},
+  {name:"麵條（一碗）",       cal:320,p:10,c:65,f:2, cat:"主食"},
+  {name:"水餃（10顆）",       cal:420,p:18,c:55,f:14,cat:"主食"},
+  {name:"蛋炒飯（一碗）",     cal:450,p:12,c:65,f:16,cat:"主食"},
+  {name:"滷肉飯（一碗）",     cal:480,p:15,c:68,f:16,cat:"主食"},
+  {name:"陽春麵（一碗）",     cal:350,p:12,c:66,f:4, cat:"主食"},
+  {name:"炒麵（一盤）",       cal:480,p:14,c:70,f:16,cat:"主食"},
+  {name:"皮蛋瘦肉粥（一碗）", cal:280,p:14,c:42,f:6, cat:"主食"},
+  {name:"雞胸肉（100g）",     cal:165,p:31,c:0, f:4, cat:"蛋白質"},
+  {name:"雞腿（一隻）",       cal:280,p:26,c:0, f:18,cat:"蛋白質"},
+  {name:"水煮蛋（一顆）",     cal:78, p:6, c:1, f:5, cat:"蛋白質"},
+  {name:"荷包蛋（一顆）",     cal:92, p:6, c:0, f:7, cat:"蛋白質"},
+  {name:"豬排（一片）",       cal:240,p:22,c:0, f:16,cat:"蛋白質"},
+  {name:"鮭魚（100g）",       cal:208,p:20,c:0, f:13,cat:"蛋白質"},
+  {name:"豆腐（半盒）",       cal:90, p:9, c:3, f:5, cat:"蛋白質"},
+  {name:"滷蛋（一顆）",       cal:85, p:7, c:1, f:5, cat:"蛋白質"},
+  {name:"蝦子（100g）",       cal:99, p:21,c:0, f:1, cat:"蛋白質"},
+  {name:"燙青菜（一盤）",     cal:50, p:2, c:8, f:1, cat:"蔬菜"},
+  {name:"炒高麗菜（一盤）",   cal:80, p:2, c:10,f:4, cat:"蔬菜"},
+  {name:"炒空心菜（一盤）",   cal:75, p:2, c:9, f:4, cat:"蔬菜"},
+  {name:"番茄炒蛋（一盤）",   cal:180,p:8, c:10,f:12,cat:"蔬菜"},
+  {name:"沙拉（一碗）",       cal:80, p:3, c:12,f:3, cat:"蔬菜"},
+  {name:"無糖豆漿（一杯）",   cal:90, p:7, c:6, f:4, cat:"飲料"},
+  {name:"全脂牛奶（240ml）",  cal:150,p:8, c:12,f:8, cat:"飲料"},
+  {name:"黑咖啡（一杯）",     cal:5,  p:0, c:1, f:0, cat:"飲料"},
+  {name:"拿鐵（中杯）",       cal:180,p:10,c:18,f:7, cat:"飲料"},
+  {name:"珍珠奶茶（中杯）",   cal:450,p:3, c:88,f:8, cat:"飲料"},
+  {name:"柳橙汁（250ml）",    cal:110,p:2, c:26,f:0, cat:"飲料"},
+  {name:"綠茶（無糖）",       cal:2,  p:0, c:0, f:0, cat:"飲料"},
+  {name:"香蕉（一根）",       cal:105,p:1, c:27,f:0, cat:"點心"},
+  {name:"蘋果（一顆）",       cal:95, p:0, c:25,f:0, cat:"點心"},
+  {name:"茶葉蛋（一顆）",     cal:85, p:7, c:1, f:5, cat:"點心"},
+  {name:"御飯糰（一個）",     cal:200,p:5, c:40,f:3, cat:"點心"},
+  {name:"肉包（一個）",       cal:260,p:10,c:40,f:7, cat:"點心"},
+  {name:"關東煮魚板（一串）", cal:60, p:5, c:8, f:1, cat:"點心"},
+  {name:"巧克力（一格）",     cal:55, p:1, c:6, f:3, cat:"點心"},
+  {name:"餅乾（3片）",        cal:150,p:2, c:22,f:6, cat:"點心"},
+  {name:"優格（一杯）",       cal:130,p:8, c:18,f:3, cat:"點心"},
+];
+const CATS = ["全部",...Array.from(new Set(FOOD_DB.map(f=>f.cat)))];
+const MEAL_LABELS = {breakfast:"早餐",lunch:"午餐",dinner:"晚餐",snack:"點心"};
+const MEAL_ICONS  = {breakfast:"☀️",lunch:"🌤️",dinner:"🌙",snack:"🍎"};
+const TOTAL_STEPS = 6;
+
+let profile = JSON.parse(localStorage.getItem('diet_profile')||'null');
+let history = JSON.parse(localStorage.getItem('diet_history')||'{}');
+let ob = {gender:null,age:null,height:null,weight:null,goal:null,speed:null,activity:null};
+let currentStep=0, currentTab='today', modalTab='manual';
+let selectedFood=null, qty=1, selectedMeal='lunch', selectedCat='全部';
+let recMode = null;
+
+function todayKey(){
+  if(viewingDate) return viewingDate;
+  return new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+}
+function saveHistory(){localStorage.setItem('diet_history',JSON.stringify(history));}
+
+// ══ ONBOARDING ══
+function initDots(){
+  document.getElementById('obDots').innerHTML=Array.from({length:TOTAL_STEPS},(_,i)=>
+    `<div class="ob-dot ${i===0?'active':''}" id="dot-${i}"></div>`).join('');
+}
+function updateDots(){
+  for(let i=0;i<TOTAL_STEPS;i++){
+    const d=document.getElementById('dot-'+i);
+    d.className='ob-dot'+(i<currentStep?' done':i===currentStep?' active':'');
+  }
+}
+function selectChoice(step,key,val,btn){
+  ob[key]=val;
+  btn.closest('.ob-choices').querySelectorAll('.ob-choice').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('next-'+step).disabled=false;
+}
+function checkStep1(){
+  const a=parseFloat(document.getElementById('ob-age').value);
+  const h=parseFloat(document.getElementById('ob-height').value);
+  const w=parseFloat(document.getElementById('ob-weight').value);
+  ob.age=(a>=10&&a<=100)?a:null;
+  ob.height=(h>=100&&h<=250)?h:null;
+  ob.weight=(w>=30&&w<=300)?w:null;
+  document.getElementById('next-1').disabled=!(ob.age&&ob.height&&ob.weight);
+}
+function checkStep2(){
+  const g=parseFloat(document.getElementById('ob-goal').value);
+  if(g>=30&&g<=300&&g<ob.weight){ob.goal=g;document.getElementById('next-2').disabled=false;}
+  else{ob.goal=null;document.getElementById('next-2').disabled=true;}
+}
+function calcProfile(){
+  let bmr=ob.gender==='male'?10*ob.weight+6.25*ob.height-5*ob.age+5:10*ob.weight+6.25*ob.height-5*ob.age-161;
+  bmr=Math.round(bmr);
+  const tdee=Math.round(bmr*ob.activity);
+  const dailyCal=Math.max(Math.round(tdee-ob.speed*7700),1200);
+  const weeks=Math.round((ob.weight-ob.goal)/ob.speed);
+  return{...ob,bmr,tdee,dailyCal,weeks,
+    protein:Math.round(dailyCal*0.30/4),
+    carbs:Math.round(dailyCal*0.40/4),
+    fat:Math.round(dailyCal*0.30/9)};
+}
+function showResult(){
+  const p=calcProfile();
+  document.getElementById('ob-result-card').innerHTML=`
+    <div class="ob-result-title">計算結果</div>
+    <div class="ob-rrow"><span class="ob-rlabel">目前 → 目標</span><span class="ob-rval" style="color:#A8E063">${p.weight}kg → ${p.goal}kg</span></div>
+    <div class="ob-rrow"><span class="ob-rlabel">預計達標時間</span><span class="ob-rval" style="color:#FFD93D">${p.weeks} 週（約 ${Math.round(p.weeks/4.3)} 個月）</span></div>
+    <div class="ob-rrow"><span class="ob-rlabel">基礎代謝率 BMR</span><span class="ob-rval" style="color:#6b8f6b">${p.bmr} 大卡</span></div>
+    <div class="ob-rrow"><span class="ob-rlabel">每日總消耗 TDEE</span><span class="ob-rval" style="color:#6b8f6b">${p.tdee} 大卡</span></div>
+    <div class="ob-rrow"><span class="ob-rlabel">每日建議攝取</span><span class="ob-rval" style="color:#A8E063">${p.dailyCal} 大卡</span></div>
+    <div class="ob-macros">
+      <div class="ob-macro"><div class="ob-macro-val" style="color:#FF6B6B">${p.protein}g</div><div class="ob-macro-label">蛋白質</div></div>
+      <div class="ob-macro"><div class="ob-macro-val" style="color:#FFD93D">${p.carbs}g</div><div class="ob-macro-label">碳水</div></div>
+      <div class="ob-macro"><div class="ob-macro-val" style="color:#6BCB77">${p.fat}g</div><div class="ob-macro-label">脂肪</div></div>
+    </div>`;
+}
+function nextStep(){
+  document.getElementById('step-'+currentStep).classList.remove('active');
+  currentStep++;
+  document.getElementById('step-'+currentStep).classList.add('active');
+  updateDots();
+  if(currentStep===5)showResult();
+}
+function prevStep(){
+  document.getElementById('step-'+currentStep).classList.remove('active');
+  currentStep--;
+  document.getElementById('step-'+currentStep).classList.add('active');
+  updateDots();
+}
+function startApp(){
+  profile=calcProfile();
+  localStorage.setItem('diet_profile',JSON.stringify(profile));
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('app').style.display='block';
+  initApp();
+}
+
+// ══ APP ══
+function initApp(){
+  document.getElementById('headerDate').textContent=new Date().toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'});
+  document.getElementById('headerBadge').innerHTML=`目標 ${profile.dailyCal.toLocaleString()} 大卡<br><span style="color:#4a6a4a;font-size:10px">每週減 ${profile.speed}kg</span>`;
+  renderToday();
+}
+
+function ringPath(cx,cy,r,pct){
+  pct=Math.min(pct,0.9999);if(pct<=0)return'';
+  const a=pct*2*Math.PI-Math.PI/2,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a),large=pct>0.5?1:0;
+  return`M ${cx} ${cy-r} A ${r} ${r} 0 ${large} 1 ${x} ${y}`;
+}
+
+function renderTodayForDate(dateKey){ viewingDate=dateKey; renderToday(); }
+function renderToday(){
+  const key=todayKey(),items=history[key]||[];
+  const t=items.reduce((a,i)=>({cal:a.cal+i.cal,p:a.p+i.p,c:a.c+i.c,f:a.f+i.f}),{cal:0,p:0,c:0,f:0});
+  const G=profile,pct=Math.min(t.cal/G.dailyCal,1),over=t.cal>G.dailyCal,color=over?'#FF6B6B':'#A8E063';
+  const ringD=pct>0?`<path d="${ringPath(90,90,75,pct)}" fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"/>`:''  ;
+  let meals='';
+  Object.keys(MEAL_LABELS).forEach(meal=>{
+    const mi=items.filter(i=>i.meal===meal);if(!mi.length)return;
+    const mt=mi.reduce((s,i)=>s+i.cal,0);
+    meals+=`<div class="meal-card"><div class="meal-header"><span class="meal-title">${MEAL_ICONS[meal]} ${MEAL_LABELS[meal]}</span><span class="meal-total">${mt} 大卡</span></div>`;
+    mi.forEach(item=>{
+      const gi=items.indexOf(item);
+      meals+=`<div class="food-row"><div><div class="food-name">${item.name}</div><div class="food-macro">蛋白 ${item.p}g · 碳水 ${item.c}g · 脂肪 ${item.f}g · ${item.time}</div></div><div style="display:flex;align-items:center"><span class="food-cal">${item.cal}</span><button class="del-btn" onclick="deleteItem('${key}',${gi})">×</button></div></div>`;
+    });
+    meals+='</div>';
+  });
+  document.getElementById('tab-today').innerHTML=`
+    <div class="ring-card">
+      <div class="ring-row">
+        <div class="ring-wrap"><svg width="160" height="160" viewBox="0 0 180 180"><circle cx="90" cy="90" r="75" fill="none" stroke="#1e2a1e" stroke-width="14"/>${ringD}</svg>
+          <div class="ring-info"><span class="ring-cal ${over?'over':''}">${t.cal}</span><span class="ring-unit">大卡</span><span class="ring-remain">${over?'超出 '+(t.cal-G.dailyCal):'剩餘 '+Math.max(G.dailyCal-t.cal,0)}</span></div></div>
+        <button class="ring-add-btn" onclick="openModal()">＋</button>
+      </div>
+      <div style="margin-top:20px">
+        <div class="nutrient"><div class="nutrient-row"><span class="nutrient-label">蛋白質</span><span class="nutrient-val">${t.p}g / ${G.protein}g</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(t.p/G.protein,1)*100}%;background:#FF6B6B"></div></div></div>
+        <div class="nutrient"><div class="nutrient-row"><span class="nutrient-label">碳水化合物</span><span class="nutrient-val">${t.c}g / ${G.carbs}g</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(t.c/G.carbs,1)*100}%;background:#FFD93D"></div></div></div>
+        <div class="nutrient"><div class="nutrient-row"><span class="nutrient-label">脂肪</span><span class="nutrient-val">${t.f}g / ${G.fat}g</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(t.f/G.fat,1)*100}%;background:#6BCB77"></div></div></div>
+      </div>
+    </div>
+    ${meals||'<div class="empty">今天還沒有飲食紀錄<br><a onclick="openModal()">點圓環旁的 ＋ 開始記錄 →</a></div>'}`;
+}
+
+// ══ RECOMMEND ══
+function renderRec(){
+  const key=todayKey(),items=history[key]||[];
+  const t=items.reduce((a,i)=>({cal:a.cal+i.cal,p:a.p+i.p,c:a.c+i.c,f:a.f+i.f}),{cal:0,p:0,c:0,f:0});
+  const G=profile;
+  const remCal=Math.max(G.dailyCal-t.cal,0);
+  const remP=Math.max(G.protein-t.p,0);
+  const remC=Math.max(G.carbs-t.c,0);
+  const remF=Math.max(G.fat-t.f,0);
+  const over=t.cal>=G.dailyCal;
+
+  let recHtml='';
+  if(recMode&&!over){
+    if(recMode==='single') recHtml=genSingleRec(remCal,remP,remC,remF,t,G);
+    else recHtml=genMealRec(remCal,remP,remC,remF,t,G);
+  }
+
+  document.getElementById('tab-rec').innerHTML=`
+    <div style="font-size:11px;color:#8aab8a;letter-spacing:2px;margin-bottom:16px">今日剩餘空間</div>
+    <div style="background:#0f1f0f;border:1px solid #1a2a1a;border-radius:12px;padding:14px 16px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:13px;color:#8aab8a">剩餘熱量</span>
+        <span style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:${over?'#FF6B6B':'#A8E063'}">${over?'已超出 '+(t.cal-G.dailyCal):remCal} 大卡</span>
+      </div>
+      ${[['蛋白質',remP,G.protein,'#FF6B6B'],['碳水化合物',remC,G.carbs,'#FFD93D'],['脂肪',remF,G.fat,'#6BCB77']].map(([label,rem,goal,color])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #1a2a1a">
+        <span style="font-size:12px;color:#6b8f6b">${label} 還差</span>
+        <span style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${rem>0?color:'#3a5a3a'}">${rem>0?rem+'g':'已達標 ✓'}</span>
+      </div>`).join('')}
+    </div>
+
+    ${over?`<div style="background:#1a0a0a;border:1px solid #3a1a1a;border-radius:12px;padding:16px;text-align:center;color:#FF6B6B;font-size:14px;line-height:2">今日熱量已超出目標<br><span style="font-size:12px;color:#6b3a3a">明天繼續加油！多走路或運動消耗多餘熱量 💪</span></div>`:`
+    <div style="font-size:11px;color:#8aab8a;letter-spacing:2px;margin-bottom:14px">選擇推薦方式</div>
+    <div class="rec-mode-btns">
+      <button class="rec-mode-btn ${recMode==='single'?'selected':''}" onclick="setRecMode('single')">
+        <div class="rm-icon">🍎</div><div class="rm-title">單一食物</div><div class="rm-desc">推薦最適合的單品</div>
+      </button>
+      <button class="rec-mode-btn ${recMode==='meal'?'selected':''}" onclick="setRecMode('meal')">
+        <div class="rm-icon">🍱</div><div class="rm-title">整餐搭配</div><div class="rm-desc">推薦完整餐點組合</div>
+      </button>
+    </div>
+    ${recHtml||'<div style="text-align:center;color:#4a6a4a;padding:20px 0;font-size:13px">選擇推薦方式後，<br>系統會根據您的剩餘營養素推薦</div>'}`}
+  `;
+}
+
+function setRecMode(mode){
+  recMode=mode;
+  renderRec();
+}
+
+function genSingleRec(remCal,remP,remC,remF,t,G){
+  // 找出最缺乏的營養素
+  const pPct=t.p/G.protein, cPct=t.c/G.carbs, fPct=t.f/G.fat;
+  const minPct=Math.min(pPct,cPct,fPct);
+  let priority='balanced';
+  if(minPct<0.5){
+    if(pPct===minPct) priority='protein';
+    else if(cPct===minPct) priority='carbs';
+    else priority='fat';
+  }
+
+  // 根據優先級排序食物
+  let scored=FOOD_DB.map(food=>{
+    if(food.cal>remCal+50) return null; // 超出太多不推薦
+    let score=0;
+    const calDiff=Math.abs(food.cal-remCal*0.6); // 偏向使用 60% 剩餘熱量
+    score+=100-Math.min(calDiff/5,100);
+    if(priority==='protein') score+=food.p*3;
+    else if(priority==='carbs') score+=food.c*2;
+    else if(priority==='fat') score+=food.f*3;
+    else score+=(food.p+food.c+food.f);
+    return{...food,score};
+  }).filter(Boolean);
+  scored.sort((a,b)=>b.score-a.score);
+  const top=scored.slice(0,5);
+
+  const priorityLabel={'protein':'蛋白質不足','carbs':'碳水化合物不足','fat':'脂肪不足','balanced':'均衡補充'};
+  const priorityColor={'protein':'#FF6B6B','carbs':'#FFD93D','fat':'#6BCB77','balanced':'#A8E063'};
+
+  return`
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      <span style="background:${priorityColor[priority]}22;color:${priorityColor[priority]};border:1px solid ${priorityColor[priority]}44;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600">${priorityLabel[priority]}</span>
+      <span style="font-size:11px;color:#4a6a4a">為您優先推薦</span>
+    </div>
+    ${top.map((food,i)=>`
+    <div class="rec-card">
+      <div class="rec-card-header">
+        <span class="rec-card-title">${['🥇','🥈','🥉','4️⃣','5️⃣'][i]} ${food.name}</span>
+        <span class="rec-card-cal">${food.cal} 大卡</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
+        <div style="background:#0a140a;border-radius:8px;padding:8px;text-align:center"><div style="color:#FF6B6B;font-weight:700;font-family:'DM Mono',monospace">${food.p}g</div><div style="color:#4a6a4a;font-size:10px">蛋白質</div></div>
+        <div style="background:#0a140a;border-radius:8px;padding:8px;text-align:center"><div style="color:#FFD93D;font-weight:700;font-family:'DM Mono',monospace">${food.c}g</div><div style="color:#4a6a4a;font-size:10px">碳水</div></div>
+        <div style="background:#0a140a;border-radius:8px;padding:8px;text-align:center"><div style="color:#6BCB77;font-weight:700;font-family:'DM Mono',monospace">${food.f}g</div><div style="color:#4a6a4a;font-size:10px">脂肪</div></div>
+      </div>
+      <div style="font-size:11px;color:#6b8f6b">吃完後剩餘熱量：<span style="color:#A8E063;font-family:'DM Mono',monospace">${Math.max(remCal-food.cal,0)}</span> 大卡</div>
+    </div>`).join('')}`;
+}
+
+function genMealRec(remCal,remP,remC,remF,t,G){
+  // 判斷最適合的餐型
+  const pPct=t.p/G.protein, cPct=t.c/G.carbs;
+  const needProtein=pPct<0.6, needCarbs=cPct<0.6;
+
+  // 預設餐點組合
+  const meals=[
+    {
+      name:"高蛋白輕食餐",
+      icon:"🥗",
+      condition: needProtein,
+      items:["雞胸肉（100g）","燙青菜（一盤）","無糖豆漿（一杯）"],
+      reason:"蛋白質攝取不足，這套組合提供高蛋白質，搭配蔬菜均衡營養，熱量輕盈"
+    },
+    {
+      name:"均衡補充套餐",
+      icon:"🍱",
+      condition: !needProtein&&!needCarbs,
+      items:["糙米飯（一碗）","水煮蛋（一顆）","炒高麗菜（一盤）"],
+      reason:"您今日各項營養攝取均衡，這套組合能完整補充剩餘熱量配額"
+    },
+    {
+      name:"增碳補能套餐",
+      icon:"🍚",
+      condition: needCarbs&&!needProtein,
+      items:["白飯（一碗）","燙青菜（一盤）","滷蛋（一顆）"],
+      reason:"碳水化合物攝取不足，適度補充有助維持體力與代謝"
+    },
+    {
+      name:"輕量點心組合",
+      icon:"🍎",
+      condition: remCal<300,
+      items:["香蕉（一根）","水煮蛋（一顆）","綠茶（無糖）"],
+      reason:"剩餘熱量較少，這個輕量組合能補充能量又不超標"
+    },
+    {
+      name:"蛋白質加強餐",
+      icon:"🥩",
+      condition: needProtein&&remCal>=400,
+      items:["鮭魚（100g）","糙米飯（一碗）","燙青菜（一盤）"],
+      reason:"蛋白質嚴重不足，鮭魚富含優質蛋白與健康脂肪，是絕佳補充選擇"
+    }
+  ];
+
+  // 選出最符合的 2-3 個
+  let selected=meals.filter(m=>m.condition);
+  if(selected.length===0) selected=[meals[1]]; // fallback 均衡套餐
+  selected=selected.slice(0,3);
+
+  return selected.map(meal=>{
+    const mealItems=meal.items.map(name=>FOOD_DB.find(f=>f.name===name)).filter(Boolean);
+    const totalCal=mealItems.reduce((s,f)=>s+f.cal,0);
+    const totalP=mealItems.reduce((s,f)=>s+f.p,0);
+    const totalC=mealItems.reduce((s,f)=>s+f.c,0);
+    const totalF=mealItems.reduce((s,f)=>s+f.f,0);
+    const fits=totalCal<=remCal+100;
+    return`
+    <div class="rec-card" style="${!fits?'opacity:0.7':''}">
+      <div class="rec-card-header">
+        <span class="rec-card-title">${meal.icon} ${meal.name}</span>
+        <span class="rec-card-cal">${totalCal} 大卡 ${!fits?'⚠️':''}</span>
+      </div>
+      ${mealItems.map(food=>`
+      <div class="rec-item">
+        <div class="rec-item-name">${food.name}</div>
+        <div class="rec-item-info">
+          <span style="color:#FF6B6B">蛋白 ${food.p}g</span>
+          <span style="color:#FFD93D">碳水 ${food.c}g</span>
+          <span style="color:#6BCB77">脂肪 ${food.f}g</span>
+          <span style="color:#A8E063">${food.cal}大卡</span>
+        </div>
+      </div>`).join('')}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0 8px">
+        <div style="background:#0a140a;border-radius:8px;padding:6px;text-align:center"><div style="color:#FF6B6B;font-weight:700;font-size:14px;font-family:'DM Mono',monospace">${totalP}g</div><div style="color:#4a6a4a;font-size:10px">蛋白質</div></div>
+        <div style="background:#0a140a;border-radius:8px;padding:6px;text-align:center"><div style="color:#FFD93D;font-weight:700;font-size:14px;font-family:'DM Mono',monospace">${totalC}g</div><div style="color:#4a6a4a;font-size:10px">碳水</div></div>
+        <div style="background:#0a140a;border-radius:8px;padding:6px;text-align:center"><div style="color:#6BCB77;font-weight:700;font-size:14px;font-family:'DM Mono',monospace">${totalF}g</div><div style="color:#4a6a4a;font-size:10px">脂肪</div></div>
+      </div>
+      <div style="font-size:11px;color:#6b8f6b;line-height:1.6;padding-top:8px;border-top:1px solid #1a2a1a">${meal.reason}</div>
+      ${!fits?'<div style="font-size:11px;color:#FF9B6B;margin-top:6px">⚠️ 此組合略超出剩餘熱量，可減少份量或選其他組合</div>':''}
+    </div>`;
+  }).join('');
+}
+
+function renderPlan(){
+  const G=profile;
+  const speedLabel=G.speed===0.25?'緩慢（每週 -0.25kg）':G.speed===0.5?'標準（每週 -0.5kg）':'積極（每週 -0.75kg）';
+  document.getElementById('tab-plan').innerHTML=`
+    <div class="plan-card"><div class="section-label">體重目標</div>
+      <div class="weight-row">
+        <div><div class="weight-num" style="color:#FF6B6B">${G.weight}</div><div class="weight-sub">目前體重 kg</div></div>
+        <div style="font-size:26px;color:#2a3d2a;margin-bottom:8px">→</div>
+        <div style="text-align:right"><div class="weight-num" style="color:#A8E063">${G.goal}</div><div class="weight-sub">目標體重 kg</div></div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
+      <div class="progress-labels"><span>需減 ${G.weight-G.goal}kg</span><span>預計 ${G.weeks} 週（約 ${Math.round(G.weeks/4.3)} 個月）</span></div>
+    </div>
+    <div class="plan-card"><div class="section-label">熱量計算（Mifflin-St Jeor）</div>
+      <div class="stat-row"><div><div class="stat-name">基礎代謝率 BMR</div><div class="stat-desc">維持生命基本運作所需</div></div><span class="stat-val" style="color:#6b8f6b">${G.bmr}</span></div>
+      <div class="stat-row"><div><div class="stat-name">每日總消耗 TDEE</div><div class="stat-desc">活動係數 ×${G.activity}</div></div><span class="stat-val" style="color:#FFD93D">${G.tdee}</span></div>
+      <div class="stat-row"><div><div class="stat-name">減重速度</div><div class="stat-desc">${speedLabel}</div></div><span class="stat-val" style="color:#6b8f6b">-${Math.round(G.speed*7700/7)}/天</span></div>
+      <div class="stat-row"><div><div class="stat-name">每日建議攝取</div><div class="stat-desc">TDEE 扣除熱量赤字</div></div><span class="stat-val" style="color:#A8E063">${G.dailyCal}</span></div>
+    </div>
+    <div class="plan-card"><div class="section-label">每日營養素目標</div>
+      <div class="stat-row"><div><div class="stat-name">🥩 蛋白質</div><div class="stat-desc">維持肌肉量・占比 30%</div></div><span class="stat-val" style="color:#FF6B6B">${G.protein}g</span></div>
+      <div class="stat-row"><div><div class="stat-name">🌾 碳水化合物</div><div class="stat-desc">提供能量・占比 40%</div></div><span class="stat-val" style="color:#FFD93D">${G.carbs}g</span></div>
+      <div class="stat-row"><div><div class="stat-name">🥑 脂肪</div><div class="stat-desc">荷爾蒙平衡・占比 30%</div></div><span class="stat-val" style="color:#6BCB77">${G.fat}g</span></div>
+    </div>
+    <div class="plan-card"><div class="section-label">重新設定</div>
+      <div style="font-size:13px;color:#4a6a4a;margin-bottom:12px">體重或目標有變化？重新輸入資料</div>
+      <button class="reset-btn" onclick="resetProfile()">🔄 重新設定個人資料</button>
+    </div>`;
+}
+
+function renderHistory(){
+  const days=Object.keys(history).sort().reverse().slice(0,7);
+  if(!days.length){document.getElementById('tab-history').innerHTML='<div class="empty">尚無歷史紀錄</div>';return;}
+  const maxCal=Math.max(...days.map(d=>history[d].reduce((s,i)=>s+i.cal,0)),profile.dailyCal);
+  const bars=days.map(d=>{const total=history[d].reduce((s,i)=>s+i.cal,0),h=Math.max((total/maxCal)*80,4),over=total>profile.dailyCal;
+    return`<div class="bar-col"><span class="bar-num" style="color:${over?'#FF6B6B':'#6b8f6b'}">${total}</span><div class="bar-rect" style="height:${h}px;background:${over?'#FF6B6B':'#A8E063'}"></div><span class="bar-date">${d.slice(5)}</span></div>`;}).join('');
+  const cards=days.map(d=>{const items=history[d],total=items.reduce((s,i)=>s+i.cal,0);
+    return`<div class="history-day"><div class="history-day-header"><span style="color:#8aab8a;font-size:13px">${d}</span><span style="color:${total>profile.dailyCal?'#FF6B6B':'#A8E063'};font-family:'DM Mono',monospace;font-size:13px">${total} 大卡</span></div>
+    ${items.map(i=>`<div class="food-row"><span class="food-name">${MEAL_ICONS[i.meal]} ${i.name}</span><span style="color:#6b8f6b;font-family:'DM Mono',monospace;font-size:12px">${i.cal} 大卡</span></div>`).join('')}</div>`;}).join('');
+  document.getElementById('tab-history').innerHTML=`<div style="color:#8aab8a;font-size:11px;letter-spacing:2px;margin-bottom:14px">近 7 天熱量趨勢</div><div class="bar-chart">${bars}</div><div class="goal-line"><span style="color:#6b8f6b;font-size:12px">每日建議上限</span><span style="color:#A8E063;font-family:'DM Mono',monospace;font-weight:700">${profile.dailyCal} 大卡</span></div>${cards}`;
+}
+
+function switchTab(tab,btn){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['today','rec','plan','history'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  if(tab==='today'){viewingDate=null;const now=new Date();document.getElementById('headerDate').textContent=now.toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'});renderToday();}
+  if(tab==='rec')renderRec();
+  if(tab==='plan')renderPlan();
+  if(tab==='history')renderHistory();
+}
+
+function deleteItem(key,idx){
+  history[key].splice(idx,1);if(!history[key].length)delete history[key];
+  saveHistory();renderToday();
+}
+function resetProfile(){
+  if(!confirm('確定要重新設定嗎？飲食紀錄會保留。'))return;
+  localStorage.removeItem('diet_profile');location.reload();
+}
+
+// ══ MODAL ══
+function openModal(){
+  selectedFood=null;qty=1;selectedMeal='lunch';selectedCat='全部';
+  ['manualName','manualCal','manualP','manualC','manualF','searchInput'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('modal').style.display='flex';
+  renderMealBtns();switchModalTab('manual');
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+function switchModalTab(tab){
+  modalTab=tab;
+  document.getElementById('mtab-manual').classList.toggle('active',tab==='manual');
+  document.getElementById('mtab-db').classList.toggle('active',tab==='db');
+  const ms=document.getElementById('manual-section'),ds=document.getElementById('db-section');
+  if(tab==='manual'){ms.style.display='block';ds.style.display='none';document.getElementById('qtyRow').style.display='none';updateManualBtn();}
+  else{ms.style.display='none';ds.style.display='flex';ds.style.flexDirection='column';renderCatBtns();renderFoodList();
+    document.getElementById('qtyRow').style.display=selectedFood?'flex':'none';document.getElementById('addBtn').disabled=!selectedFood;if(selectedFood)updateQtyDisplay();}
+}
+function updateManualBtn(){
+  const name=document.getElementById('manualName').value.trim();
+  const cal=parseFloat(document.getElementById('manualCal').value);
+  document.getElementById('addBtn').disabled=!(name&&cal>0);
+}
+function copyPrompt(){
+  navigator.clipboard.writeText('我吃了「___」，請估算營養成分，格式：\n熱量：＿大卡 / 蛋白質：＿g / 碳水：＿g / 脂肪：＿g').then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='✅ 已複製！';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 複製提示詞，去問 ChatGPT';btn.classList.remove('copied');},2000);
+  });
+}
+function renderMealBtns(){document.getElementById('mealBtns').innerHTML=Object.entries(MEAL_LABELS).map(([k,v])=>`<button class="meal-btn ${k===selectedMeal?'active':''}" onclick="selectMeal('${k}')">${MEAL_ICONS[k]} ${v}</button>`).join('');}
+function selectMeal(m){selectedMeal=m;renderMealBtns();}
+function renderCatBtns(){document.getElementById('catBtns').innerHTML=CATS.map(c=>`<button class="cat-btn ${c===selectedCat?'active':''}" onclick="selectCat('${c}')">${c}</button>`).join('');}
+function selectCat(c){selectedCat=c;selectedFood=null;renderCatBtns();renderFoodList();document.getElementById('qtyRow').style.display='none';document.getElementById('addBtn').disabled=true;}
+function renderFoodList(){
+  const q=document.getElementById('searchInput').value;
+  const filtered=FOOD_DB.filter(f=>(selectedCat==='全部'||f.cat===selectedCat)&&(!q||f.name.includes(q)));
+  if(!filtered.length){document.getElementById('foodList').innerHTML='<div class="no-result">找不到相符食物</div>';return;}
+  document.getElementById('foodList').innerHTML=filtered.map(f=>{const sel=selectedFood&&selectedFood.name===f.name;
+    return`<div class="food-item ${sel?'selected':''}" onclick="selectFood(${FOOD_DB.indexOf(f)})"><div><div class="food-name">${f.name}</div><div class="food-macro">蛋白 ${f.p}g · 碳水 ${f.c}g · 脂肪 ${f.f}g</div></div><span class="food-item-cal">${f.cal}</span></div>`;}).join('');
+}
+function selectFood(idx){selectedFood=FOOD_DB[idx];qty=1;renderFoodList();document.getElementById('qtyRow').style.display='flex';updateQtyDisplay();document.getElementById('addBtn').disabled=false;}
+function changeQty(d){qty=Math.max(0.5,qty+d);updateQtyDisplay();}
+function updateQtyDisplay(){document.getElementById('qtyNum').textContent=qty;document.getElementById('qtyCal').textContent=selectedFood?Math.round(selectedFood.cal*qty)+' 大卡':'';}
+function addFood(){
+  const key=todayKey();if(!history[key])history[key]=[];
+  const time=new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+  if(modalTab==='manual'){
+    const name=document.getElementById('manualName').value.trim();
+    const cal=Math.round(parseFloat(document.getElementById('manualCal').value)||0);
+    const p=Math.round(parseFloat(document.getElementById('manualP').value)||0);
+    const c=Math.round(parseFloat(document.getElementById('manualC').value)||0);
+    const f=Math.round(parseFloat(document.getElementById('manualF').value)||0);
+    history[key].push({name,cal,p,c,f,meal:selectedMeal,time});
+  } else {
+    if(!selectedFood)return;
+    history[key].push({name:qty===1?selectedFood.name:selectedFood.name+' ×'+qty,cal:Math.round(selectedFood.cal*qty),p:Math.round(selectedFood.p*qty),c:Math.round(selectedFood.c*qty),f:Math.round(selectedFood.f*qty),meal:selectedMeal,time});
+  }
+  saveHistory();closeModal();if(currentTab==='today')renderToday();
+}
+
+
+// ══ CALENDAR ══
+let calYear, calMonth, viewingDate;
+
+function todayKeyFull(date) {
+  return date.toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+}
+
+function openCal() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  document.getElementById('calModal').style.display = 'flex';
+  renderCal();
+}
+
+function closeCal() {
+  document.getElementById('calModal').style.display = 'none';
+}
+
+function calPrevMonth() {
+  calMonth--;
+  if(calMonth < 0) { calMonth = 11; calYear--; }
+  renderCal();
+}
+
+function calNextMonth() {
+  const now = new Date();
+  if(calYear === now.getFullYear() && calMonth === now.getMonth()) return;
+  calMonth++;
+  if(calMonth > 11) { calMonth = 0; calYear++; }
+  renderCal();
+}
+
+function renderCal() {
+  const now = new Date();
+  const todayStr = todayKeyFull(now);
+  const viewStr = viewingDate || todayStr;
+  
+  const months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('calMonthLabel').textContent = calYear + '年 ' + months[calMonth];
+  
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  
+  let html = '';
+  // Empty cells
+  for(let i=0;i<firstDay;i++) html += '<div class="cal-day empty"></div>';
+  
+  for(let d=1;d<=daysInMonth;d++) {
+    const date = new Date(calYear, calMonth, d);
+    const key = todayKeyFull(date);
+    const isToday = key === todayStr;
+    const isSelected = key === viewStr;
+    const isFuture = date > now;
+    const hasData = history[key] && history[key].length > 0;
+    
+    let cls = 'cal-day';
+    if(isToday) cls += ' today';
+    if(isSelected) cls += ' selected';
+    if(isFuture) cls += ' future';
+    if(hasData) cls += ' has-data';
+    
+    html += `<button class="${cls}" onclick="selectCalDay('${key}')">${d}</button>`;
+  }
+  document.getElementById('calDays').innerHTML = html;
+}
+
+function selectCalDay(key) {
+  viewingDate = key;
+  closeCal();
+  // Update header date display
+  const parts = key.split('-');
+  const date = new Date(parts[0], parseInt(parts[1])-1, parts[2]);
+  const isToday = key === todayKeyFull(new Date());
+  document.getElementById('headerDate').innerHTML = 
+    date.toLocaleDateString('zh-TW',{month:'long',day:'numeric',weekday:'short'}) + 
+    (isToday ? '' : ' <span style="font-size:11px;color:#FFD93D;font-weight:400">（補登）</span>');
+  // Re-render today tab with selected date
+  renderTodayForDate(key);
+  // Switch to today tab
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.tab').classList.add('active');
+  ['today','rec','plan','history'].forEach(t=>document.getElementById('tab-'+t).style.display=t==='today'?'block':'none');
+}
+
+// ══ INIT ══
+viewingDate = null;
+initDots();
+if(profile){
+  document.getElementById('onboarding').classList.add('hidden');
+  document.getElementById('app').style.display='block';
+  initApp();
+}
+</script>
+
+<!-- Calendar Modal -->
+<div class="cal-overlay" id="calModal" style="display:none" onclick="if(event.target===this)closeCal()">
+  <div class="cal-modal">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrevMonth()">‹</button>
+      <span class="cal-month" id="calMonthLabel"></span>
+      <button class="cal-nav" onclick="calNextMonth()">›</button>
+    </div>
+    <div class="cal-weekdays">
+      <div class="cal-weekday">日</div><div class="cal-weekday">一</div><div class="cal-weekday">二</div>
+      <div class="cal-weekday">三</div><div class="cal-weekday">四</div><div class="cal-weekday">五</div><div class="cal-weekday">六</div>
+    </div>
+    <div class="cal-days" id="calDays"></div>
+    <button class="cal-close" onclick="closeCal()">關閉</button>
+  </div>
+</div>
+</body>
+</html>
